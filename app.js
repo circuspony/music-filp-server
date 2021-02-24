@@ -1,4 +1,4 @@
-const swipl = require('swipl-stdio');
+const swipl = require('swipl');
 // Engine represents one SWI-Prolog process.
 const engine = new swipl.Engine();
 (async () => {
