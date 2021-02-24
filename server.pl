@@ -85,7 +85,7 @@ check_for_search(Request, Dict, NewDict):- http_parameters(Request,
                     searchstring(SearchString, [string,optional(true)])
                     ]),
     Search,
-    re_replace("%20", " ", SearchString, SearchStringWS),
+    replace_string(SearchString, "%20", SearchStringWS),
     string_upper(SearchStringWS,SearchStringUC),
     filter_dicts_field(Dict,SearchStringUC,name,NewDict).
 check_for_search(Request, Dict, Dict):- http_parameters(Request,
@@ -219,3 +219,11 @@ get_a_random_list(Number,[RName|Rest]):-
     last(List,RName),
     NewNumber is Number-1,
     get_a_random_list(NewNumber, Rest).
+
+/*
+A quick replacer
+*/
+concat_with_space([S],S).
+concat_with_space([S|R],FS):-string_concat(S," ",NS), concat_with_space(R,RS), string_concat(NS,RS,FS).
+
+replace_string(String, SubString, NewString):-split_string(String, SubString, SubString, List), concat_with_space(List,NewString).
