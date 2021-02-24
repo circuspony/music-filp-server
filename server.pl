@@ -1,10 +1,9 @@
-:- use_module(library(http/http_server)).
+:- use_module(library(http/thread_httpd)).
+:- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_cors)).
 :- use_module(library(http/http_json)).
 :- use_module(library(http/http_parameters)).
 
-:- initialization
-    http_server([port(8080)]).
 :- set_setting_default(http:cors, [*]).
 :-consult(facts).
 :- http_handler(root(.),
