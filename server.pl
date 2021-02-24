@@ -3,7 +3,6 @@
 :- use_module(library(http/http_cors)).
 :- use_module(library(http/http_json)).
 :- use_module(library(http/http_parameters)).
-:- use_module(library(pcre)).
 
 :- set_setting_default(http:cors, [*]).
 :-consult(facts).
