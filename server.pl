@@ -181,7 +181,7 @@ find_artist(Request) :-http_parameters(Request,
                     name(ArtistName, [string,optional(true)])
                     ]),
     string_upper(ArtistName,ArtistNameUC),
-    findall(point{id:ID,name:ArtistNameFound}, artist_exists(ID,ArtistNameFound,_), NameList),
+    findall(point{id:ID,name:ArtistNameFound, description:Description}, artist_exists(ID,ArtistNameFound,Description), NameList),
     filter_dicts_field(NameList,ArtistNameUC,name,NewDict),
     cors_enable,
     reply_json(json([ artist_id=NewDict])).
