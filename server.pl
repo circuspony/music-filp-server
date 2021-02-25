@@ -10,7 +10,7 @@
 :- initialization
     http_server([port(8080)]).
 */
-:-dynmic mom/1
+:-dynamic mom/1.
 
 :- set_setting_default(http:cors, [*]).
 :-consult(facts).
@@ -231,15 +231,17 @@ get_a_random_list(Number,[RName|Rest]):-
 /*
 This saves a created request
 */
-create_playlist(Request):-    
-    open('palylists.txt',append,Out),
+create_playlist(Request):-
+file_directory_name(facts,Dir),
+working_directory(Old,Dir), 
+    open('./playlists.txt',append,Out),
     write(Out,'mom("wqw").\n'),
     close(Out),
     cors_enable,
-    reply_json(json([ playlist="dick"])).
+    reply_json(json([ playlist=Dir])).
 
 read_playlist(Request):-    
-    consult('palylists.txt'),
+    consult('./playlists.txt'),
     findall(Name,mom(Name),L),
     cors_enable,
     reply_json(json([ playlist=L])).
