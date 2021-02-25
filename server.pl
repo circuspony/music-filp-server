@@ -4,17 +4,18 @@
 :- use_module(library(http/http_json)).
 :- use_module(library(http/http_parameters)).
 
-/*
+
 :- use_module(library(http/http_server)).
 
 :- initialization
     http_server([port(8080)]).
-*/
+
+
 :-dynamic mom/1.
 
 :- set_setting_default(http:cors, [*]).
-:-consult(facts).
-:-consult('playlists.txt').
+:-absolute_file_name(facts,Abs),consult(facts),write(Abs).
+
 :- http_handler(root(.),
                 http_redirect(moved, location_by_id(all_albums)),
                 []).
@@ -25,7 +26,7 @@
 :- http_handler(root(artist), get_artist_profile, []).
 :- http_handler(root(generate), generate_playlist, []).
 :- http_handler(root(create), create_playlist, []).
-:- http_handler(root(read), read_playlist, []).
+:- http_handler(root(rread), read_playlist, []).
 
 /*
 Starting route functions
@@ -233,16 +234,19 @@ get_a_random_list(Number,[RName|Rest]):-
 This saves a created request
 */
 create_playlist(Request):-
-file_directory_name(facts,Dir),
-working_directory(Old,Dir), 
-    open('./playlists.txt',append,Out),
+    absolute_file_name(facts,Abs),
+    /*open('./playlists.pl',append,Out),
     write(Out,'mom("wqw").\n'),
     close(Out),
+    */
+    assert(mom("ss")),
+    tell(Abs),
+    listing(mom),
+    told,
     cors_enable,
-    reply_json(json([ playlist=Dir])).
+    reply_json(json([ playlist=Abs])).
 
 read_playlist(Request):-    
-    consult('./playlists.txt'),
     findall(Name,mom(Name),L),
     cors_enable,
     reply_json(json([ playlist=L])).
