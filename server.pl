@@ -4,6 +4,14 @@
 :- use_module(library(http/http_json)).
 :- use_module(library(http/http_parameters)).
 
+/*
+:- use_module(library(http/http_server)).
+
+:- initialization
+    http_server([port(8080)]).
+*/
+:-dynmic mom/1
+
 :- set_setting_default(http:cors, [*]).
 :-consult(facts).
 :- http_handler(root(.),
@@ -15,6 +23,8 @@
 :- http_handler(root(find), find_artist, []).
 :- http_handler(root(artist), get_artist_profile, []).
 :- http_handler(root(generate), generate_playlist, []).
+:- http_handler(root(create), create_playlist, []).
+:- http_handler(root(read), read_playlist, []).
 
 /*
 Starting route functions
@@ -218,7 +228,21 @@ get_a_random_list(Number,[RName|Rest]):-
     last(List,RName),
     NewNumber is Number-1,
     get_a_random_list(NewNumber, Rest).
+/*
+This saves a created request
+*/
+create_playlist(Request):-    
+    open('palylists.txt',append,Out),
+    write(Out,'mom("wqw").\n'),
+    close(Out),
+    cors_enable,
+    reply_json(json([ playlist="dick"])).
 
+read_playlist(Request):-    
+    consult('palylists.txt'),
+    findall(Name,mom(Name),L),
+    cors_enable,
+    reply_json(json([ playlist=L])).
 /*
 A quick replacer
 */
