@@ -14,6 +14,7 @@
 
 :- set_setting_default(http:cors, [*]).
 :-consult(facts).
+:-consult(playlists.txt).
 :- http_handler(root(.),
                 http_redirect(moved, location_by_id(all_albums)),
                 []).
