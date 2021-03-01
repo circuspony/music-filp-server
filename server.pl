@@ -10,14 +10,14 @@
 
 :- initialization
     http_server([port(8080)]).
-:-  tell('playlists_data.pl'),
-    listing(playlist_exists),
-    listing(playlist_has_song),
-    told.
+
 */
 :-dynamic playlist_exists/5.
 :-dynamic playlist_has_song/2.
-
+:-  tell('playlistsdata.pl'),
+    listing(playlist_exists),
+    listing(playlist_has_song),
+    told.
 :- set_setting_default(http:cors, [*]).
 :-consult(facts).
 :-consult(playlists).
@@ -261,7 +261,7 @@ get_a_random_list(Number,[RName|Rest]):-
 This deals with playlists
 */
 all_playlists(Request):-
-    reconsult('playlists_data.pl'),
+    reconsult('playlistsdata.pl'),
     findall([Id, Name,  AuthorName, Description,Artwork], playlist_exists(Id, Name, AuthorName, Description,Artwork),List),
     give_albums_durations(List,ListWithArtistsAndDurations),
     turn_to_dicts_playlists(ListWithArtistsAndDurations,ListDicts),
@@ -269,7 +269,7 @@ all_playlists(Request):-
     reply_json(json([ playlists=ListDicts])).
 
 create_playlist(Request):-   
-    reconsult('playlists_data.pl'),     
+    reconsult('playlistsdata.pl'),     
     http_parameters(Request,
                     [ 
                     name(Name, [string,optional(true)]),
@@ -289,7 +289,7 @@ create_playlist(Request):-
    assert(playlist_exists(NewID,Author, Name,Description,Image)),
    split_string(Array, ',', ',', NewArray),
    assert_arrays(NewArray,NewID),
-    tell('playlists_data.pl'),   
+    tell('playlistsdata.pl'),   
     listing(playlist_exists),
     listing(playlist_has_song),
     told,
