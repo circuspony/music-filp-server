@@ -4,7 +4,6 @@
 :- use_module(library(http/http_json)).
 :- use_module(library(http/http_parameters)).
 :- use_module(library(http/http_server)).
-:- use_module(library(http/html_write))
 :- encoding(utf8).
 
 /*
