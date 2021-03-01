@@ -279,7 +279,11 @@ create_playlist(Request):-
                     arraystring(Array, [string,optional(true)])
                     ]),
    findall(ID,playlist_exists(ID,_,_,_,_),List),
-   last(List,LastID),
+   last(List,LastID),    
+   reply_html_page(
+        title('Demo server'),
+        [ h1('1')
+        ]),
    string_concat("p",LastIDNumber,LastID),
    number_string(Number,LastIDNumber),
    NewNumber is Number+1,
@@ -289,7 +293,12 @@ create_playlist(Request):-
    get_a_random_image(RandomNumber,Image),
    assert(playlist_exists(NewID,Author, Name,Description,Image)),
    split_string(Array, ',', ',', NewArray),
+      reply_html_page(
+        title('Demo server'),
+        [ h1('2')
+        ]),
    assert_arrays(NewArray,NewID),
+    tell('playlists_data.pl'),   
     listing(playlist_exists),
     listing(playlist_has_song),
     told,
