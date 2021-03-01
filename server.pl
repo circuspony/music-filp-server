@@ -10,14 +10,14 @@
 
 :- initialization
     http_server([port(8080)]).
-
-*/
-:-dynamic playlist_exists/5.
-:-dynamic playlist_has_song/2.
 :-  tell('playlists_data.pl'),
     listing(playlist_exists),
     listing(playlist_has_song),
     told.
+*/
+:-dynamic playlist_exists/5.
+:-dynamic playlist_has_song/2.
+
 :- set_setting_default(http:cors, [*]).
 :-consult(facts).
 :-consult(playlists).
