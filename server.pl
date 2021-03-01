@@ -291,7 +291,7 @@ create_playlist(Request):-
    split_string(Array, ',', ',', NewArray),
    assert_arrays(NewArray,NewID),
    format('~w ~ cum', [NewArray]),
-    tell('playlists_data1.pl'),   
+    tell('playlists_data.pl'),   
     listing(playlist_exists),
     listing(playlist_has_song),
     told,
