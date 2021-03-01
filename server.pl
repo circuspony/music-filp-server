@@ -10,7 +10,8 @@
 
 :- initialization
     http_server([port(8080)]).
-:-  tell('playlistsdata.pl'),
+
+:-  tell('playlists_data.pl'),
     listing(playlist_exists),
     listing(playlist_has_song),
     told.
