@@ -14,7 +14,7 @@
 */
 :-dynamic playlist_exists/5.
 :-dynamic playlist_has_song/2.
-:-  tell("playlists_data.pl"),
+:-  tell(playlists_data.pl),
     listing(playlist_exists),
     listing(playlist_has_song),
     told.
@@ -261,7 +261,7 @@ get_a_random_list(Number,[RName|Rest]):-
 This deals with playlists
 */
 all_playlists(Request):-
-    reconsult("playlists_data.pl"),
+    reconsult(playlists_data.pl),
 
     findall([Id, Name,  AuthorName, Description,Artwork], playlist_exists(Id, Name, AuthorName, Description,Artwork),List),
     give_albums_durations(List,ListWithArtistsAndDurations),
@@ -270,7 +270,7 @@ all_playlists(Request):-
     reply_json(json([ playlists=ListDicts])).
 
 create_playlist(Request):-   
-    reconsult("playlists_data.pl"),     
+    reconsult(playlists_data.pl),     
     http_parameters(Request,
                     [ 
                     name(Name, [string,optional(true)]),
@@ -290,7 +290,7 @@ create_playlist(Request):-
    assert(playlist_exists(NewID,Author, Name,Description,Image)),
    split_string(Array, ',', ',', NewArray),
    assert_arrays(NewArray,NewID),
-    tell("playlists_data.pl"),   
+    tell(playlists_data.pl),   
     listing(playlist_exists),
     listing(playlist_has_song),
     told,
