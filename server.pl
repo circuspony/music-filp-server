@@ -14,7 +14,7 @@
 */
 :-dynamic playlist_exists/5.
 :-dynamic playlist_has_song/2.
-:-  tell('playlists.pl'),
+:-  tell('playlists1.pl'),
     listing(playlist_exists),
     listing(playlist_has_song),
     told.
@@ -261,7 +261,8 @@ get_a_random_list(Number,[RName|Rest]):-
 This deals with playlists
 */
 all_playlists(Request):-
-    reconsult('playlists.pl'),
+    reconsult('playlists1.pl'),
+
     findall([Id, Name,  AuthorName, Description,Artwork], playlist_exists(Id, Name, AuthorName, Description,Artwork),List),
     give_albums_durations(List,ListWithArtistsAndDurations),
     turn_to_dicts_playlists(ListWithArtistsAndDurations,ListDicts),
