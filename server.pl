@@ -288,7 +288,7 @@ create_playlist(Request):-
    random_between(1,3,RandomNumber),
    get_a_random_image(RandomNumber,Image),
    assert(playlist_exists(NewID,Author, Name,Description,Image)),
-   split_string(Array, ',', ',', NewArray),s
+   split_string(Array, ',', ',', NewArray),
    assert_arrays(NewArray,NewID),
     tell('playlists_data.pl'),   
     listing(playlist_exists),
