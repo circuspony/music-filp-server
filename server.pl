@@ -3,7 +3,7 @@
 :- use_module(library(http/http_cors)).
 :- use_module(library(http/http_json)).
 :- use_module(library(http/http_parameters)).
-
+:- encoding(utf8).
 
 :- use_module(library(http/http_server)).
 
@@ -11,11 +11,15 @@
     http_server([port(8080)]).
 
 
-:-dynamic mom/1.
-
+:-dynamic playlist_exists/5.
+:-dynamic playlist_has_song/2.
+:-  tell('playlists.pl'),
+    listing(playlist_exists),
+    listing(playlist_has_song),
+    told.
 :- set_setting_default(http:cors, [*]).
-:-absolute_file_name(facts,Abs),consult(facts),write(Abs).
-
+:-consult(facts).
+:-consult(playlists).
 :- http_handler(root(.),
                 http_redirect(moved, location_by_id(all_albums)),
                 []).
@@ -26,14 +30,16 @@
 :- http_handler(root(artist), get_artist_profile, []).
 :- http_handler(root(generate), generate_playlist, []).
 :- http_handler(root(create), create_playlist, []).
-:- http_handler(root(rread), read_playlist, []).
+:- http_handler(root(playlists), all_playlists, []).
+:- http_handler(root(tracklist), album_tracklist, []).
 
 /*
 Starting route functions
 */
 all_albums(Request) :-
-    findall([Id, Name,Description,Date,Artwork, Genres], album_exists(Id,Name,Description,Date,Artwork,Genres),List),
-    get_album_artists(List, ListWithArtists),
+    findall([Id, Name,Description,Date,Artwork], album_exists(Id,Name,Description,Date,Artwork),List),
+    get_album_genres(List,ListG),
+    get_album_artists(ListG, ListWithArtists),
     give_albums_durations(ListWithArtists,ListWithArtistsAndDurations),
     turn_to_dicts_albums(ListWithArtistsAndDurations,ListDicts),
     check_for_genre(Request, ListDicts, ListGenredDicts),
@@ -43,8 +49,22 @@ all_albums(Request) :-
     cors_enable,
     reply_json(json([ album_list=ListSorted])).
 
+
+/*
+This is where all things genre related are stored
+*/
+get_genre_list([],[]).
+get_genre_list([Id|Rest],FinalGenres):-song_exists(Id,_,_,_, Genres, _), get_genre_list(Rest,Temp), append_without_dupicates(Temp,Genres,FinalGenres).
+
+append_without_dupicates(Temp,[],Temp).
+append_without_dupicates(Temp, [G|R],[G|NewTemp]):-not(member(G,Temp)),append_without_dupicates(Temp,R,NewTemp).
+append_without_dupicates(Temp, [G|R],NewTemp):-member(G,Temp),append_without_dupicates(Temp,R,NewTemp).
+
+get_album_genres([],[]).
+get_album_genres([[AlbumId,Name,Description,Date,Artwork]|Rest], [[AlbumId, Name,Description,Date,Artwork, Genres]|NewRest]):-findall(SongId,album_has_song(AlbumId, _, SongId),Songs), get_genre_list(Songs,Genres), get_album_genres(Rest,NewRest).
+
 all_genres(Request) :-
-    genres_exist(GenreList),
+    findall(Genre, genre_exists(Genre),GenreList),
     cors_enable,
     reply_json(json([ genre_list=GenreList])).
 /*
@@ -52,6 +72,9 @@ This turns arrays into dicts
 */
 turn_to_dicts_albums([[Duration, AlbumId, ArtistIds, Artists, Name, Description, Date, Artwork,Genres]],[point{duration:Duration, albumid:AlbumId, artistids:ArtistIds, artists:Artists, name:Name, description:Description, date:Date, artwork:Artwork,genres:Genres}]).
 turn_to_dicts_albums([[Duration, AlbumId, ArtistIds, Artists, Name, Description, Date, Artwork,Genres]|Rest],[point{duration:Duration, albumid:AlbumId, artistids:ArtistIds, artists:Artists, name:Name, description:Description, date:Date, artwork:Artwork,genres:Genres}|NewRest]):-turn_to_dicts_albums(Rest,NewRest).
+
+turn_to_dicts_playlists([[Duration, AlbumId,  Author, Name, Description, Artwork]],[point{duration:Duration, albumid:AlbumId,  author:Author, name:Name, description:Description, artwork:Artwork}]).
+turn_to_dicts_playlists([[Duration, AlbumId,  Author, Name, Description, Artwork]|Rest],[point{duration:Duration, albumid:AlbumId,  author:Author, name:Name, description:Description, artwork:Artwork}|NewRest]):-turn_to_dicts_playlists(Rest,NewRest).
 
 turn_to_dicts_songs([[Artwork, AlbumName, AlbumId, SongId, Name, Duration, Date, Genres, ArtistIds, Artists, TrackListNumber]],[point{artwork:Artwork, albumname:AlbumName, albumid:AlbumId, songid:SongId, name: Name, duration:Duration, date:Date, genres:Genres, artistids:ArtistIds, artists:Artists, tracklistnumber:TrackListNumber}]).
 turn_to_dicts_songs([[Artwork, AlbumName, AlbumId, SongId, Name, Duration, Date, Genres, ArtistIds, Artists, TrackListNumber]|Rest],[point{artwork:Artwork, albumname:AlbumName, albumid:AlbumId, songid:SongId, name: Name, duration:Duration, date:Date, genres:Genres, artistids:ArtistIds, artists:Artists, tracklistnumber:TrackListNumber}|NewRest]):-turn_to_dicts_songs(Rest,NewRest).
@@ -61,8 +84,9 @@ This checks for genres in a query
 check_for_genre(Request, Dict, NewDict):- http_parameters(Request,
                     [ genre(Genre, [string,optional(true)])
                     ]),
-    Genre \== "None",
-    filter_dicts(Dict,Genre,genres,NewDict).
+    replace_string(Genre, "%20", GenreSpace),
+    GenreSpace \== "None",
+    filter_dicts(Dict,GenreSpace,genres,NewDict).
 check_for_genre(Request, Dict, Dict):- http_parameters(Request,
                     [ genre(Genre, [string,optional(true)])
                     ]),
@@ -148,9 +172,11 @@ populate_songs([],[]).
 populate_songs([SongID|Rest],[[SongID,Name,Duration,Date,Genres,Artists]|PopulatedRest]):-song_exists(SongID,Name,Duration,Date,Genres,Artists),populate_songs(Rest,PopulatedRest).
 
 get_tracklist(AlbumId,FinalTrackList):-findall(SongID,album_has_song(AlbumId,_,SongID),SimpleTrackList),populate_songs(SimpleTrackList,DetailedTrackList),  get_artists(DetailedTrackList,FinalTrackList).
+get_tracklist(PlaylistID,FinalTrackList):-findall(SongID,playlist_has_song(PlaylistID,SongID),SimpleTrackList), populate_songs(SimpleTrackList,DetailedTrackList), get_artists(DetailedTrackList,FinalTrackList).
 
 sum_tracklist_duration([],Temp, Temp).
 sum_tracklist_duration([[_,_,_,_,_,Duration,_,_,_,_,_]|Rest],Temp, Sum):-NewTemp is Temp+Duration,sum_tracklist_duration(Rest,NewTemp,Sum).
+sum_tracklist_duration([[_,_,Duration,_,_,_]|Rest],Temp, Sum):-NewTemp is Temp+Duration,sum_tracklist_duration(Rest,NewTemp,Sum).
 
 give_albums_durations([[ID|RestInfo]],[[Duration,ID|RestInfo]]):-get_tracklist(ID,TrackList), sum_tracklist_duration(TrackList,0,Duration).
 give_albums_durations([[ID|RestInfo]|RestOfAlbums],[[Duration,ID|RestInfo]|UpdatedRest]):-get_tracklist(ID,TrackList), sum_tracklist_duration(TrackList,0,Duration),give_albums_durations(RestOfAlbums,UpdatedRest).
@@ -177,8 +203,8 @@ all_songs(Request) :-
 /*
 This goes through songs to give them real artist names
 */
-get_artists([[Id,Name,Duration,Date,Genres,Artists]], [[Art, AlbumName, AlbumId, Id, Name,Duration,Date,Genres,Artists, PopulatedArtists,TrackListNumber]]):-populate_artists(Artists,PopulatedArtists),album_has_song(AlbumId,TrackListNumber,Id),album_exists(AlbumId,AlbumName,_,_,Art,_).
-get_artists([[Id,Name,Duration,Date,Genres,Artists]|RestOfSongs], [[Art, AlbumName, AlbumId, Id, Name,Duration,Date,Genres,Artists, PopulatedArtists,TrackListNumber] | UpdatedList]):-populate_artists(Artists,PopulatedArtists), album_has_song(AlbumId,TrackListNumber,Id), album_exists(AlbumId,AlbumName,_,_,Art,_), get_artists(RestOfSongs, UpdatedList).
+get_artists([[Id,Name,Duration,Date,Genres,Artists]], [[Art, AlbumName, AlbumId, Id, Name,Duration,Date,Genres,Artists, PopulatedArtists,TrackListNumber]]):-populate_artists(Artists,PopulatedArtists),album_has_song(AlbumId,TrackListNumber,Id),album_exists(AlbumId,AlbumName,_,_,Art).
+get_artists([[Id,Name,Duration,Date,Genres,Artists]|RestOfSongs], [[Art, AlbumName, AlbumId, Id, Name,Duration,Date,Genres,Artists, PopulatedArtists,TrackListNumber] | UpdatedList]):-populate_artists(Artists,PopulatedArtists), album_has_song(AlbumId,TrackListNumber,Id), album_exists(AlbumId,AlbumName,_,_,Art), get_artists(RestOfSongs, UpdatedList).
 /*
 This associates the names with ids
 */
@@ -231,25 +257,80 @@ get_a_random_list(Number,[RName|Rest]):-
     NewNumber is Number-1,
     get_a_random_list(NewNumber, Rest).
 /*
-This saves a created request
+This deals with playlists
 */
-create_playlist(Request):-
-    absolute_file_name(facts,Abs),
-    /*open('./playlists.pl',append,Out),
-    write(Out,'mom("wqw").\n'),
-    close(Out),
-    */
-    assert(mom("ss")),
-    tell(Abs),
-    listing(mom),
-    told,
+all_playlists(Request):-
+    reconsult('playlists.pl'),
+    findall([Id, Name,  AuthorName, Description,Artwork], playlist_exists(Id, Name, AuthorName, Description,Artwork),List),
+    give_albums_durations(List,ListWithArtistsAndDurations),
+    turn_to_dicts_playlists(ListWithArtistsAndDurations,ListDicts),
     cors_enable,
-    reply_json(json([ playlist=Abs])).
+    reply_json(json([ playlists=ListDicts])).
 
-read_playlist(Request):-    
-    findall(Name,mom(Name),L),
+create_playlist(Request):-   
+    reconsult('playlists.pl'),     
+    cors_enable(Request,
+                [ methods([get,post])
+                ]),
+    http_parameters(Request,
+                    [ 
+                    name(Name, [string,optional(true)]),
+                    author(Author, [string,optional(true)]),
+                    description(Description, [string,optional(true)]),
+                    arraystring(Array, [string,optional(true)])
+                    ]),
+   findall(ID,playlist_exists(ID,_,_,_,_),List),
+   last(List,LastID),
+   string_concat("p",LastIDNumber,LastID),
+   number_string(Number,LastIDNumber),
+   NewNumber is Number+1,
+   number_string(NewNumber,NewString),
+   string_concat("p",NewString,NewID),
+   random_between(1,3,RandomNumber),
+   get_a_random_image(RandomNumber,Image),
+   assert(playlist_exists(NewID,Author, Name,Description,Image)),
+   split_string(Array, ',', ',', NewArray),
+   assert_arrays(NewArray,NewID),
+    tell('playlists.pl'),   
+    listing(playlist_exists),
+    listing(playlist_has_song),
+    told,
+    reply_json(json([ status="GOOD"])).
+
+assert_arrays([],_).
+assert_arrays([ID|R],PID):-assert(playlist_has_song(PID,ID)),assert_arrays(R,PID).
+
+get_a_random_image(1,"https://pbs.twimg.com/profile_images/1161679754065563648/4_1yjOO7_400x400.jpg").
+get_a_random_image(2,"https://lh3.googleusercontent.com/adbDj4JGglVp2kn4p1lbzl1svZ59-9M2JODP3MqUtNWCuyXU3KSFepXWSL2rcq0LUBA37q6SHJ1rIQag4Emm5xjVKmX6TNO-1A=s750").
+get_a_random_image(3,"https://playlistpush.com/wp-content/uploads/2017/11/logo-final.png").
+
+/*
+This replies with tracklists for the realeases
+*/
+album_tracklist(Request) :-http_parameters(Request,
+                    [ 
+                    id(AlbumId, [string,optional(true)])
+                    ]),
+    get_tracklist(AlbumId, Tracklist),
+    turn_to_dicts_songs(Tracklist,TrackListObj),
+    album_exists(AlbumId,Name,Description,_,Artwork),
     cors_enable,
-    reply_json(json([ playlist=L])).
+    reply_json(json([ tracklist=TrackListObj,
+    album = point{albumid:AlbumId, name:Name, description:Description, artwork:Artwork}
+    ])).
+
+album_tracklist(Request) :-http_parameters(Request,
+                    [ 
+                    id(AlbumId, [string,optional(true)])
+                    ]),
+    get_tracklist(AlbumId, Tracklist),
+    turn_to_dicts_songs(Tracklist,TrackListObj),
+    playlist_exists(AlbumId,Author,Name, Description,Artwork),
+    cors_enable,
+    reply_json(json([ tracklist=TrackListObj, 
+    album=point{albumid:AlbumId, author:Author, name:Name, description:Description, artwork:Artwork}]
+    )).
+
 /*
 A quick replacer
 */
