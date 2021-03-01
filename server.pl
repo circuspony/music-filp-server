@@ -290,7 +290,7 @@ create_playlist(Request):-
    assert(playlist_exists(NewID,Author, Name,Description,Image)),
    split_string(Array, ',', ',', NewArray),
    assert_arrays(NewArray,NewID),
-    tell('playlists_data.pl'),   
+    tell('playlists_dat2a.pl'),   
     listing(playlist_exists),
     listing(playlist_has_song),
     told,
