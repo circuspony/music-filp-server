@@ -7,8 +7,7 @@
 
 :- use_module(library(http/http_server)).
 
-:- initialization
-    http_server([port(8080)]).
+
 
 
 :-dynamic playlist_exists/5.
