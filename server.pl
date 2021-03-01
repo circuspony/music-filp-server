@@ -271,9 +271,6 @@ all_playlists(Request):-
 
 create_playlist(Request):-   
     reconsult('playlists_data.pl'),     
-    cors_enable(Request,
-                [ methods([get,post])
-                ]),
     http_parameters(Request,
                     [ 
                     name(Name, [string,optional(true)]),
@@ -283,6 +280,7 @@ create_playlist(Request):-
                     ]),
    findall(ID,playlist_exists(ID,_,_,_,_),List),
    last(List,LastID),
+   format('1\n', []),
    string_concat("p",LastIDNumber,LastID),
    number_string(Number,LastIDNumber),
    NewNumber is Number+1,
@@ -298,6 +296,7 @@ create_playlist(Request):-
     listing(playlist_exists),
     listing(playlist_has_song),
     told,
+    cors_enable,
     reply_json(json([ status="GOOD"])).
 
 assert_arrays([],_).
