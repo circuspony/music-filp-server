@@ -293,6 +293,7 @@ create_playlist(Request):-
    assert(playlist_exists(NewID,Author, Name,Description,Image)),
    split_string(Array, ',', ',', NewArray),
    assert_arrays(NewArray,NewID),
+   format('~w ~ cum', [NewArray]).
     tell('playlists_data.pl'),   
     listing(playlist_exists),
     listing(playlist_has_song),
