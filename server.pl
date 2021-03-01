@@ -273,7 +273,11 @@ all_playlists(Request):-
     cors_enable,
     reply_json(json([ playlists=ListDicts])).
 
-create_playlist(Request):-   
+create_playlist(Request):-  
+    tell('playlistsdata.pl'),   
+    listing(playlist_exists),
+    listing(playlist_has_song),
+    told, 
     reconsult('playlistsdata.pl'),     
     http_parameters(Request,
                     [ 
