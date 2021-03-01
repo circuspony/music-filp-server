@@ -3,13 +3,14 @@
 :- use_module(library(http/http_cors)).
 :- use_module(library(http/http_json)).
 :- use_module(library(http/http_parameters)).
-:- use_module(library(http/http_server)).
 :- encoding(utf8).
 
 /*
+:- use_module(library(http/http_server)).
 
 :- initialization
     http_server([port(8080)]).
+...
 
 :-  tell('playlistsdata.pl'),
     listing(playlist_exists),
